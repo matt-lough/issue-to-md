@@ -8,12 +8,14 @@ ISSUE_LABELS = ['minor', 'moderate', 'major', 'critical']
 # These are optional, it increases your github API limit when used
 CLIENT_ID = ''
 CLIENT_SECRET = ''
+CHARS_PER_ISSUE = 500
 
 def get_issues_by_label(label_name)
   output = ''
   output += "### #{label_name.capitalize}\n"
 
   git_url = 'https://api.github.com/repos/'+REPO_URL+'/issues?labels='+label_name
+  git_url = 'https://api.github.com/repos/'+REPO_URL+'/issues?state=all&labels='+label_name
   git_url += "&client_id=#{CLIENT_ID}&client_secret=#{CLIENT_SECRET}" unless CLIENT_ID.empty?
 
   issues = JSON.parse(RestClient.get(git_url))
@@ -23,13 +25,16 @@ def get_issues_by_label(label_name)
     new_body = ''
     words = issue['body'].split(' ').each do |word|
       if word.start_with? 'https://github.com'
-        line_number = word[word.index('#')..-1]
-        word = "[#{line_number}](#{word}])"
+        word = ''
+        if word.index('#')
+          line_number = word[word.index('#')..-1]
+          word = "[#{line_number}](#{word}])"
+        end
       end
       new_body << "#{word} "
-      break if new_body.size > 150
+      break if new_body.size > CHARS_PER_ISSUE
     end
-    issue_body = new_body + (new_body.size > 150 ? '...' : '')
+    issue_body = new_body + (new_body.size > CHARS_PER_ISSUE ? '...' : '')
     labels = []
     issue['labels'].each do |label|
       labels << label['name'].capitalize unless ISSUE_LABELS.include? label['name']

@@ -1,5 +1,11 @@
 # Issues to markdown
 
+## Install
+
+```
+$ bundle install
+```
+
 ## Usage
 
 * Open `main.rb` and edit the `REPO_URL` variable
