@@ -2,21 +2,24 @@ require 'rest-client'
 require 'json'
 require 'httparty'
 
-REPO_URL="example/example"
+REPO_URL="blockchainlabsnz/wings-private-contracts"
 ISSUE_LABELS = ['minor', 'moderate', 'major', 'critical']
 
 # These are optional, it increases your github API limit when used
 CLIENT_ID = ''
 CLIENT_SECRET = ''
+
+# Personal Access Token is required to auth on private repos
+ACCESS_TOKEN = ''
+
 CHARS_PER_ISSUE = 500
 
 def get_issues_by_label(label_name)
   output = ''
   output += "### #{label_name.capitalize}\n"
 
-  git_url = 'https://api.github.com/repos/'+REPO_URL+'/issues?labels='+label_name
   git_url = 'https://api.github.com/repos/'+REPO_URL+'/issues?state=all&labels='+label_name
-  git_url += "&client_id=#{CLIENT_ID}&client_secret=#{CLIENT_SECRET}" unless CLIENT_ID.empty?
+  git_url += "&access_token=#{ACCESS_TOKEN}" unless ACCESS_TOKEN.empty?
 
   issues = JSON.parse(RestClient.get(git_url))
 
@@ -51,7 +54,10 @@ def main
   ISSUE_LABELS.each do |issue_label|
     output += get_issues_by_label(issue_label)
   end
-  File.open('output.md', 'w') { |file| file.write(output) }
+  file_name = 'output.md'
+  File.open(file_name, 'w') { |file| file.write(output) }
+  p "File written to ./#{file_name}"
+
 end
 
 main
