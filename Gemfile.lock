@@ -3,6 +3,8 @@ GEM
   specs:
     domain_name (0.5.20170404)
       unf (>= 0.0.5, < 1.0.0)
+    dotenv (2.2.1)
+    highline (1.7.10)
     http-cookie (1.0.3)
       domain_name (~> 0.5)
     httparty (0.15.6)
@@ -25,9 +27,11 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  dotenv
+  highline
   httparty
   json
   rest-client
 
 BUNDLED WITH
-   1.15.4
+   1.16.1

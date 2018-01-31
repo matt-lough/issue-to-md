@@ -1,18 +1,22 @@
 require 'rest-client'
 require 'json'
 require 'httparty'
+require 'highline'
+require 'dotenv'
+Dotenv.load
 
-REPO_URL="blockchainlabsnz/wings-private-contracts"
 ISSUE_LABELS = ['minor', 'moderate', 'major', 'critical']
 
-# These are optional, it increases your github API limit when used
-CLIENT_ID = ''
-CLIENT_SECRET = ''
+cli = HighLine.new
+REPO_URL = cli.ask('Repo URL: ') { |q| q.validate = /^[-.\w]+\/[-.\w]+$/ }
+raise 'Repo URL is required' if REPO_URL.empty?
 
-# Personal Access Token is required to auth on private repos
-ACCESS_TOKEN = ''
+# This is optional, it increases your github API limit when used.
+# update it on the .env file
+# Note: Personal Access Token is required to auth on private repos
+ACCESS_TOKEN = ENV.fetch('ACCESS_TOKEN', nil)
 
-CHARS_PER_ISSUE = 500
+CHARS_PER_ISSUE = ENV.fetch('CHARS_PER_ISSUE', 500)
 
 def get_issues_by_label(label_name)
   output = ''
@@ -23,41 +27,49 @@ def get_issues_by_label(label_name)
 
   issues = JSON.parse(RestClient.get(git_url))
 
-  output += "- None found\n" if issues.empty?
-  issues.each do |issue|
-    new_body = ''
-    words = issue['body'].split(' ').each do |word|
-      if word.start_with? 'https://github.com'
-        word = ''
-        if word.index('#')
-          line_number = word[word.index('#')..-1]
-          word = "[#{line_number}](#{word}])"
+  if issues.empty?
+    output += "- None found\n"
+  else
+    issues.each do |issue|
+      new_body = ''
+      issue['body'].split(' ').each do |word|
+        if word.start_with? 'https://github.com'
+          url_word = word
+          if word.index('#')
+            line_number = word[word.index('#')..-1]
+            word = "[#{line_number}](#{url_word}])"
+          end
         end
+        new_body << "#{word} "
+        break if new_body.size > CHARS_PER_ISSUE
       end
-      new_body << "#{word} "
-      break if new_body.size > CHARS_PER_ISSUE
+      issue_body = new_body + (new_body.size > CHARS_PER_ISSUE ? '...' : '')
+      labels = []
+      issue['labels'].each do |label|
+        labels << label['name'].capitalize unless ISSUE_LABELS.include? label['name']
+      end
+      labels_text = ''
+      labels_text = '`' + labels.join('`, ') + '`' unless labels.empty?
+      output += "- **#{issue['title']}** - #{labels_text} #{issue_body} [View on GitHub](#{issue['html_url']})\n"
     end
-    issue_body = new_body + (new_body.size > CHARS_PER_ISSUE ? '...' : '')
-    labels = []
-    issue['labels'].each do |label|
-      labels << label['name'].capitalize unless ISSUE_LABELS.include? label['name']
-    end
-    labels_text = ''
-    labels_text = '`' + labels.join('`, ') + '`' unless labels.empty?
-    output += "- **#{issue['title']}** - #{labels_text} #{issue_body} [View on GitHub](#{issue['html_url']})\n"
   end
+
   return output
 end
 
 def main
   output = ''
   ISSUE_LABELS.each do |issue_label|
-    output += get_issues_by_label(issue_label)
+    begin
+      output += get_issues_by_label(issue_label)
+    rescue RestClient::Unauthorized
+      puts "Unauthorized access to ACCESS_TOKEN: #{ACCESS_TOKEN[0..3]}..."
+      return
+    end
   end
   file_name = 'output.md'
   File.open(file_name, 'w') { |file| file.write(output) }
   p "File written to ./#{file_name}"
-
 end
 
 main
