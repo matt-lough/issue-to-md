@@ -6,6 +6,10 @@
 $ bundle install
 ```
 
+### Troubleshoot
+
+* If you're running Linux and having trouble running `bundle install`, make sure you have `ruby-dev` installed in your environment (e.g. `apt-get install ruby-dev`).
+
 ## Usage
 
 * Run `$ ruby main.rb`
